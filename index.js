@@ -1,99 +1,67 @@
-import {
-  onGetTasks,
-  saveTask,
-  deleteTask,
-  getTask,
-  updateTask,
-  getTasks,
-} from "./firebase.js";
+import {saveTask, onGetTasks, deleteTask, editTask, getTak} from './firebase.js';
 
 const taskForm = document.getElementById("task-form");
-const tasksContainer = document.getElementById("tasks-container");
+const taskContainer = document.getElementById('tasks-container')
 
 let editStatus = false;
-let id = "";
+let id ='';
 
-window.addEventListener("DOMContentLoaded", async (e) => {
-  // const querySnapshot = await getTasks();
-  // querySnapshot.forEach((doc) => {
-  //   console.log(doc.data());
-  // });
+window.addEventListener("DOMContentLoaded", async () => {
+    
+    onGetTasks((querySnapshot) => {
+        
+        taskContainer.innerHTML = '';
+           querySnapshot.forEach((doc) => {
+            
+            const task = doc.data();
+            
+            taskContainer.innerHTML += `
+            
+            <div class="card card-body mt-2 border-primary" style="border-radius: 10px;">
+                <h3>Tarea: ${task.title}</h3>
+                <p>Descripcion: ${task.description}</p>
+                <div class="displey-flex">
+                    <button class ="btn btn-primary btn-delete" data-id="${doc.id}" style="border-radius: 10px;" >Delete</button>
+                    <button class ="btn btn-success btn-edit" data-id="${doc.id}" style="border-radius: 10px;" >Edit</button>
+                </div>
+            </div>
+            `
+        })
+        
+        const btnDelete = taskContainer.querySelectorAll('.btn-delete')
+        btnDelete.forEach((btn) => {
 
-  onGetTasks((querySnapshot) => {
-    tasksContainer.innerHTML = "";
-
-    querySnapshot.forEach((doc) => {
-      const task = doc.data();
-
-      tasksContainer.innerHTML += `
-      <div class="card card-body mt-2 border-primary">
-    <h3 class="h5">${task.title}</h3>
-    <p>${task.description}</p>
-    <div>
-      <button class="btn btn-primary btn-delete" data-id="${doc.id}">
-        🗑 Delete
-      </button>
-      <button class="btn btn-secondary btn-edit" data-id="${doc.id}">
-        🖉 Edit
-      </button>
-    </div>
-  </div>`;
-    });
-
-    const btnsDelete = tasksContainer.querySelectorAll(".btn-delete");
-    btnsDelete.forEach((btn) =>
-      btn.addEventListener("click", async ({ target: { dataset } }) => {
-        try {
-          await deleteTask(dataset.id);
-        } catch (error) {
-          console.log(error);
-        }
-      })
-    );
-
-    const btnsEdit = tasksContainer.querySelectorAll(".btn-edit");
-    btnsEdit.forEach((btn) => {
-      btn.addEventListener("click", async (e) => {
-        try {
-          const doc = await getTask(e.target.dataset.id);
-          const task = doc.data();
-          taskForm["task-title"].value = task.title;
-          taskForm["task-description"].value = task.description;
-
-          editStatus = true;
-          id = doc.id;
-          taskForm["btn-task-form"].innerText = "Update";
-        } catch (error) {
-          console.log(error);
-        }
-      });
-    });
-  });
-});
+            btn.addEventListener('click', (e) => {
+                deleteTask(e.target.dataset.id)
+            })
+        })
+        const btnEdit = taskContainer.querySelectorAll('.btn-edit')
+        btnEdit.forEach((btn) => {
+            btn.addEventListener('click', async(e) => {
+                const doc = await getTak(e.target.dataset.id)
+                
+                const task = doc.data()
+                taskForm['task-title'].value = task.title
+                taskForm['task-description'].value = task.description
+                editStatus = true;
+                id = e.target.dataset.id;
+                taskForm['btn-task-form'].innerHTML = 'Edit Task'
+            })
+        })
+    })
+})  
 
 taskForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const title = taskForm["task-title"];
-  const description = taskForm["task-description"];
-
-  try {
+    e.preventDefault();
+    const title = taskForm["task-title"].value;
+    const description = taskForm["task-description"].value;
     if (!editStatus) {
-      await saveTask(title.value, description.value);
-    } else {
-      await updateTask(id, {
-        title: title.value,
-        description: description.value,
-      });
-
-      editStatus = false;
-      id = "";
-      taskForm["btn-task-form"].innerText = "Save";
-    }
-
+        saveTask(title, description);
+        
+    }else{
+        editTask(id, {title, description});
+        editStatus = false;
+        taskForm['btn-task-form'].innerHTML = 'save'
+    }  
     taskForm.reset();
-    title.focus();
-  } catch (error) {
-    console.log(error);
-  }
 });
